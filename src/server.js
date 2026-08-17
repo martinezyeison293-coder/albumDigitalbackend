@@ -14,12 +14,28 @@ const UserCollection = require('./models/UserCollection');
 dotenv.config();
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/mialbum';
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/mialbum';
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123';
+
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+const allowedOrigins = [FRONTEND_URL, 'http://localhost:5173', 'http://localhost:3000'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
+app.use(express.json());
+
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', service: 'albumdigitalbackend' });
+});
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('MongoDB connected'))
