@@ -1,0 +1,31 @@
+{
+  "name": "albumdigitalbackend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "seed": "node src/seeds/seedData.js",
+    "dev": "node src/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/martinezyeison293-coder/albumDigitalbackend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/martinezyeison293-coder/albumDigitalbackend/issues"
+  },
+  "homepage": "https://github.com/martinezyeison293-coder/albumDigitalbackend#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.9.2"
+  }
+}
