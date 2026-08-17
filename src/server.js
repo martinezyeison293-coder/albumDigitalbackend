@@ -71,6 +71,15 @@ const logActivity = async (userId, username, action, details = {}) => {
   } catch (err) { /* non-blocking */ }
 };
 
+const getOrCreateCollection = async (userId, albumId) => {
+  let collection = await UserCollection.findOne({ userId, albumId });
+  if (!collection) {
+    collection = new UserCollection({ userId, albumId, collectedStickers: [] });
+    await collection.save();
+  }
+  return collection;
+};
+
 const publicUser = (user) => ({
   id: user._id,
   username: user.username,
@@ -169,7 +178,7 @@ app.get('/api/albums/current', authMiddleware, async (req, res) => {
   try {
     const album = await Album.findOne();
     const stickers = await Sticker.find({ albumId: album._id }).sort({ number: 1 });
-    const collection = await UserCollection.findOne({ userId: req.user.id, albumId: album._id });
+    const collection = await getOrCreateCollection(req.user.id, album._id);
 
     res.json({ album, stickers, collection });
   } catch (err) {
@@ -208,10 +217,7 @@ app.post('/api/packs/open', authMiddleware, async (req, res) => {
     }
 
     // Save to collection
-    const collection = await UserCollection.findOne({ userId: user._id, albumId: album._id });
-    if (!collection) {
-      return res.status(400).json({ message: 'Colección no encontrada' });
-    }
+    const collection = await getOrCreateCollection(user._id, album._id);
 
     const newOnes = [];
     obtainedStickers.forEach(sticker => {
@@ -242,7 +248,7 @@ app.post('/api/collection/place/:stickerId', authMiddleware, async (req, res) =>
   try {
     const { stickerId } = req.params;
     const album = await Album.findOne();
-    const collection = await UserCollection.findOne({ userId: req.user.id, albumId: album._id });
+    const collection = await getOrCreateCollection(req.user.id, album._id);
 
     const stickerInCol = collection.collectedStickers.find(s => s.stickerId.toString() === stickerId);
 
@@ -298,6 +304,26 @@ app.get('/api/admin/stats', authMiddleware, adminOnly, async (req, res) => {
       Activity.countDocuments()
     ]);
     res.json({ users, stickers, collections, activities });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Grant credits/packs to a user (review/testing helper)
+app.post('/api/admin/grant', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { username, credits = 0, packs = 0 } = req.body;
+    if (!username) return res.status(400).json({ message: 'Username requerido' });
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.credits = Math.max(0, (user.credits || 0) + Number(credits));
+    user.availablePacks.basic = Math.max(0, (user.availablePacks?.basic || 0) + Number(packs));
+    await user.save();
+
+    await logActivity(user._id, user.username, 'admin_view', { details: 'grant', credits: Number(credits), packs: Number(packs) });
+
+    res.json({ user: publicUser(user) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

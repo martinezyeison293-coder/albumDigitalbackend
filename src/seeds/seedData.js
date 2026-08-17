@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const Album = require('../models/Album');
 const Sticker = require('../models/Sticker');
 const User = require('../models/User');
+const UserCollection = require('../models/UserCollection');
 const stickerFiles = require('./stickerFiles.json');
 const dotenv = require('dotenv');
 
@@ -68,6 +69,16 @@ const seedData = async () => {
       { upsert: true }
     );
     console.log(`Admin user ready (${ADMIN_USERNAME}/${ADMIN_PASSWORD}) — upserted:`, admin.upsertedCount === 1);
+
+    const adminUser = await User.findOne({ username: ADMIN_USERNAME });
+    if (adminUser) {
+      await UserCollection.updateOne(
+        { userId: adminUser._id, albumId: album._id },
+        { $setOnInsert: { userId: adminUser._id, albumId: album._id, collectedStickers: [] } },
+        { upsert: true }
+      );
+      console.log('Admin collection ready');
+    }
 
     console.log('Seed data inserted successfully!');
     process.exit(0);
